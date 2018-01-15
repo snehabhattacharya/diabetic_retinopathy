@@ -1,6 +1,6 @@
 import matplotlib
 matplotlib.use('Agg')
-from load_data import transform_data
+from load_data_inception import transform_data
 from sklearn.metrics import confusion_matrix, recall_score, f1_score
 import torch
 import torchvision
@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
-from torchvision.models.vgg import model_urls
+#from torchvision.models.vgg import model_urls
 #import matplotlib
 #matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -22,22 +22,22 @@ use_gpu = torch.cuda.is_available()
 
 def train_new_model(dataloaders, dataset_sizes):
 #    global dataloaders, dataset_sizes
-    model_urls['vgg19_bn'] = model_urls['vgg19_bn'].replace('https://', 'http://')
+    #model_urls['vgg19_bn'] = model_urls['vgg19_bn'].replace('https://', 'http://')
     
-    pre_model = torchvision.models.vgg19_bn(pretrained=True)
+    pre_model = torchvision.models.inception_v3(pretrained=True)
     
 
-    for param in pre_model.features.parameters():    #----> 1
+    for param in pre_model.parameters():    #----> 1
         param.requires_grad = False
 
     # Parameters of newly constructed modules have requires_grad=True by default
-    layers = list(pre_model.classifier.children())[:-1]
-    pre_last_layer = list(pre_model.classifier.children())[-1]
-    new_last_layer = nn.Linear(pre_last_layer.in_features, 2)
-    layers += [new_last_layer]
+    #layers = list(pre_model.children())[:-1]
+    #pre_last_layer = list(pre_model.children())[-1]
+    #new_last_layer = nn.Linear(4096, 2)
+    #layers += [new_last_layer]
     
-    new_classifier = nn.Sequential(*layers)
-    pre_model.classifier = new_classifier
+    new_classifier = nn.Linear(2048,2)
+    pre_model.fc = new_classifier
     if use_gpu:
         pre_model = pre_model.cuda()
     criterion = nn.CrossEntropyLoss()
@@ -46,10 +46,14 @@ def train_new_model(dataloaders, dataset_sizes):
     learning_rate = [0.001]
     best_acc = 0.0
     best_model = None
+    #for param in pre_model.parameters():
+    #	print param.requires_grad
     # Observe that all parameters are being optimized
     for lr in learning_rate:
-        optimizer = optim.SGD(pre_model.classifier.parameters(), lr=lr, momentum=0.9,nesterov=True)
-
+        #filter(lambda p: p.requires_grad, model.parameters())
+        #optimizer = optim.SGD(filter(lambda p: p.requires_grad, pre_model.parameters()), lr=lr, momentum=0.9,nesterov=True)
+        # optimizer = optim.SGD(pre_model.fc.parameters(), lr=lr,momentum=0.9,nesterov=True )
+        optimizer = optim.Adam(pre_model.fc.parameters(), lr=lr )
         # Decay LR by a factor of 0.1 every 7 epochs
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.00001)
 
@@ -61,7 +65,7 @@ def train_new_model(dataloaders, dataset_sizes):
         best_model = new_model
     
    # best_model.save_state_dict("best_model.pt")
-    torch.save(best_model, "best_model_vgg19.pt")
+    torch.save(best_model, "best_model_inception.pt")
     return best_model, accuracy, loss_history
 
 
@@ -87,7 +91,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
 
             running_loss = 0.0
             running_corrects = 0
-
+            best_sens = 0.0
             # Iterate over data.
             rc = 0
             fs = 0
@@ -111,9 +115,13 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 # forward
                 print inputs.size()
                 outputs = model(inputs)
-                _, preds = torch.max(outputs.data, 1)
+                #print torch.max(outputs[0])
+                _, preds = torch.max(outputs[0].data, 1)
                 # print preds, labels.data ,"labels"
-                loss = criterion(outputs, labels)
+                loss = sum((criterion(o,labels) for o in outputs))
+                #loss1 = criterion(op1, labels)
+                #loss2 = criterion(op2,labels)
+               # loss = loss1+loss2
                 # backward + optimize only if in training phase
                 if phase == 'train':
                     loss.backward()
@@ -136,6 +144,10 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             #print float(tp)/float(tp+fn), "sensitivity"
             print float(fs)/(float(dataset_sizes[phase]/ float(batch_size)))
             print float(rc)/(float(dataset_sizes[phase]/float(batch_size))), "sensitivity"
+            sens = float(rc)/(float(dataset_sizes[phase]/float(batch_size)))
+            if sens > best_sens:
+		print "best sens" , best_sens
+                best_sens = sens
             epoch_loss = float(running_loss) / float(dataset_sizes[phase])
             epoch_acc = float(running_corrects) / float(dataset_sizes[phase])
             if phase == "train":
@@ -237,6 +249,9 @@ def train_model2(model, criterion, optimizer, scheduler, num_epochs=25):
             #print float(tp)/float(tp+fn), "sensitivity"
             print float(fs)/(float(dataset_sizes[phase]/ float(batch_size)))
             print float(rc)/(float(dataset_sizes[phase]/float(batch_size))), "sensitivity"
+            sens = float(rc)/(float(dataset_sizes[phase]/float(batch_size)))
+            if sens > best_sens:
+		print "best sensi", sens
             epoch_loss = float(running_loss) / float(dataset_sizes[phase])
             epoch_acc = float(running_corrects) / float(dataset_sizes[phase])
             if phase == "train":

@@ -7,11 +7,11 @@ import skimage
 from skimage import io
 
 
-root = '/home/sneha_bhattacharya227/Diabetic_Retinopathy/dataset'
+root = '/home/sneha_bhattacharya227/diabetic_retinopathy/dataset'
 ds_factor = int(sys.argv[1])
 
 def process_images():
-    labels = ['symptoms/*/', 'nosymptoms']
+    labels = ['symptoms', 'nosymptoms']
     phase = ['train', 'val']
     for p in phase:
         dataset_dir = os.path.join(root, p)

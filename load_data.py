@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
 
-dataset_dir = '/home/sneha_bhattacharya227/Diabetic_Retinopathy/dataset/'
+dataset_dir = '/home/sneha_bhattacharya227/diabetic_retinopathy/dataset2/'
 batch_size = 50
 num_workers = 2
 use_gpu = torch.cuda.is_available()
@@ -65,8 +65,9 @@ def transform_data():
     data_transforms = {
         'train': transforms.Compose([
             transforms.Scale((224, 224)),
-            # transforms.RandomSizedCrop(224),
-            # transforms.RandomHorizontalFlip(),
+            #transforms.RandomSizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation((90,180)),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
@@ -82,10 +83,11 @@ def transform_data():
     image_datasets = {x: datasets.ImageFolder(os.path.join(dataset_dir, x+y),
                                               data_transforms[x])
                       for x in ['train', 'val']}
+    print image_datasets
 
     # transformed dataset
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], 
-        batch_size=batch_size, shuffle=False, num_workers=num_workers)
+        batch_size=batch_size, shuffle=True, num_workers=num_workers)
                   for x in ['train', 'val']}
 
     return image_datasets, dataloaders
@@ -95,16 +97,18 @@ def transform_data():
 def main():
     image_datasets, dataloaders = transform_data()
     # print image_datasets['train'][1]
-
+    print image_datasets['train'].classes
+    
     dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
     class_names = image_datasets['train'].classes
+    
 
 
     # Visualization
     # Get a batch of training data
-    inputs, classes = next(iter(dataloaders['train']))
+    #inputs, classes = next(iter(dataloaders['train']))
 
     # Make a grid from batch
-    out = torchvision.utils.make_grid(inputs)
+    #out = torchvision.utils.make_grid(inputs)
 
-    imshow(out, title=[class_names[x] for x in classes])
+    #imshow(out, title=[class_names[x] for x in classes])
