@@ -6,4 +6,5 @@ This project is to detect diabetic retinopathy from fundus images. Convolutional
 
 We have experimented with fine-tuning VGG19 and Inception v3 on the retina image dataset and used a cross entropy loss function. The classification task is to detect the presence of diabetic retinopathy. Data pre-processing and augmentation was also done before training the neural network model. 
 
-Used pytorch
+The dataset can be obtained at (https://www.kaggle.com/c/diabetic-retinopathy-detection/data)
+Used Pytorch
